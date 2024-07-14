@@ -782,6 +782,9 @@ form {
   padding: 10px;
   border: 1px solid var(--container-border);
   border-radius: 10px;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
 }
 
 .projects,
@@ -953,6 +956,10 @@ ul.popular-tags li {
     right: 0;
     top: 0;
   }
+
+  select {
+    max-width: 100%;
+  }
 }
 
 .radio-btn-row {
@@ -991,6 +998,23 @@ ul.popular-tags li {
 
 .filters-panel {
   margin-bottom: 20px;
+}
+
+.projects .stats {
+    display: flex;
+    flex-direction: row;
+    justify-content: space-between;
+}
+
+.fork-count {
+    display: flex;
+    margin-top: 10px;
+    height: max-content;
+}
+
+.fork-count-svg {
+    align-self: center;
+    fill: var(--fork-svg-fill);
 }
 
 @media screen and (max-width : 670px) {

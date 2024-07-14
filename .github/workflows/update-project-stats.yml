@@ -1,29 +1,29 @@
 on:
   schedule:
     - cron: 0 14 * * *
-  workflow_dispatch:    
+  workflow_dispatch:
     inputs:
       apply-changes:
         description: 'Whether workflow should generate a pull request for these changes'
         required: false
-        default: '0'
+        default: '1'
 
 name: Update project stats
 jobs:
   updateProjectStats:
     runs-on: ubuntu-latest
+    timeout-minutes: 15
     steps:
       - name: Checkout
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
       - name: Setup Ruby
-        uses: ruby/setup-ruby@55283cc23133118229fd3f97f9336ee23a179fcf
+        uses: ruby/setup-ruby@3a77c29278ae80936b4cb030fefc7d21c96c786f
         with:
           ruby-version: '3.2'
           bundler-cache: true
           cache-version: 0
       - name: Run script to update stats for all projects
-        # Outputs to the './_site' directory by default
         run: bundle exec ruby scripts/update_stats.rb
         env:
           GITHUB_TOKEN: ${{ secrets.SHIFTBOT_TOKEN }}
-          APPLY_CHANGES: 0
+          APPLY_CHANGES: ${{ inputs.apply-changes }}

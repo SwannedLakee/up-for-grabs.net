@@ -12,9 +12,9 @@ require 'up_for_grabs_tooling'
 def update(project, apply_changes: false)
   return unless project.github_project?
 
-  warn "checking project: #{project.github_owner_name_pair}..."
-
   result = GitHubRepositoryLabelActiveCheck.run(project)
+
+  warn "Project: #{project.github_owner_name_pair} returned #{result.inspect}"
 
   if result[:rate_limited]
     warn 'This script is currently rate-limited by the GitHub API'
@@ -24,6 +24,16 @@ def update(project, apply_changes: false)
 
   if result[:reason] == 'repository-missing'
     warn "The GitHub repository '#{project.github_owner_name_pair}' cannot be found. Please confirm the location of the project."
+    return
+  end
+
+  if result[:reason] == 'issues-disabled'
+    warn "The GitHub repository '#{project.github_owner_name_pair}' has issues disabled, and should be cleaned up with the next deprecation run."
+    return
+  end
+
+  if result[:reason] == 'error'
+    warn "An error occurred: #{result[:error]}"
     return
   end
 
@@ -42,18 +52,21 @@ def update(project, apply_changes: false)
   link_needs_rewriting = link != url && link.include?('/labels/')
 
   unless apply_changes
-    if link_needs_rewriting
-      warn "The label link for '#{label}' in project '#{project.relative_path}' is out of sync with what is found in the 'upforgrabs' element. Ensure this is updated to '#{url}'"
-    end
+    warn "The label link for '#{label}' in project '#{project.relative_path}' is out of sync with what is found in the 'upforgrabs' element. Ensure this is updated to '#{url}'" if link_needs_rewriting
     return
   end
 
   obj.store('upforgrabs', 'name' => label, 'link' => url) if link_needs_rewriting
 
   if result[:last_updated].nil?
-    obj.store('stats', 'issue-count' => result[:count])
+    obj.store('stats',
+              'issue-count' => result[:count],
+              'fork-count' => result[:fork_count])
   else
-    obj.store('stats', 'issue-count' => result[:count], 'last-updated' => result[:last_updated])
+    obj.store('stats',
+              'issue-count' => result[:count],
+              'last-updated' => result[:last_updated],
+              'fork-count' => result[:fork_count])
   end
 
   project.write_yaml(obj)
@@ -116,7 +129,9 @@ Dir.chdir(root_directory) do
   unless clean
     system("git checkout -b #{branch_name}")
     warn 'after git checkout'
-    system("git commit -am 'regenerated project stats'")
+    system('git add _data/projects/')
+    warn 'after git add'
+    system("git commit -m 'regenerated project stats'")
     warn 'after git commit'
     system("git push origin #{branch_name}")
     warn 'after git push'
